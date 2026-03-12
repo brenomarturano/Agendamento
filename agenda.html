@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+<meta charset="UTF-8">
+<title>Agenda do Barbeiro</title>
+
+<style>
+
+body{
+font-family: Arial;
+background:#111;
+color:white;
+display:flex;
+justify-content:center;
+padding-top:40px;
+}
+
+.container{
+background:#000;
+padding:30px;
+border-radius:10px;
+width:90%;
+max-width:400px;
+border-top:4px solid blue;
+border-bottom:4px solid red;
+}
+
+h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-bottom:20px;
+border-radius:5px;
+border:none;
+}
+
+ul{
+list-style:none;
+padding:0;
+}
+
+li{
+padding:8px;
+border-bottom:1px solid #333;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Agenda do Dia</h2>
+
+<label>Escolher data</label>
+<input type="date" id="data">
+
+<ul id="lista"></ul>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+
+const firebaseConfig = {
+apiKey: "AIzaSyCar3n-ezQP36Jhy0n6lHZK65rfzmusVd8",
+authDomain: "agendamentodonando.firebaseapp.com",
+projectId: "agendamentodonando",
+storageBucket: "agendamentodonando.firebasestorage.app",
+messagingSenderId: "72068738051",
+appId: "1:72068738051:web:d93bd790389e9a5e7a7236"
+};
+
+firebase.initializeApp(firebaseConfig)
+
+const db = firebase.firestore()
+
+const lista = document.getElementById("lista")
+
+function carregarAgenda(){
+
+let data = document.getElementById("data").value
+
+if(!data){
+lista.innerHTML = "<li>Escolha uma data</li>"
+return
+}
+
+db.collection("agendamentos")
+.where("data","==",data)
+.get()
+.then((querySnapshot)=>{
+
+lista.innerHTML=""
+
+if(querySnapshot.empty){
+lista.innerHTML="<li>Nenhum horário marcado</li>"
+return
+}
+
+querySnapshot.forEach((doc)=>{
+
+let a = doc.data()
+
+let item = document.createElement("li")
+
+item.innerText = a.horario + " - " + a.nome + " (" + a.servico + ")"
+
+lista.appendChild(item)
+
+})
+
+})
+
+}
+
+document.getElementById("data").addEventListener("change", carregarAgenda)
+
+</script>
+
+</body>
+
+</html>
