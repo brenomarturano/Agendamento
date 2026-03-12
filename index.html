@@ -1,0 +1,218 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Agendamento - Demonstração</title>
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#111; /* fundo geral escuro */
+    display:flex;
+    justify-content:center;
+    padding:40px 0;
+}
+
+.container{
+    background:#000; /* fundo preto dentro do bloco */
+    padding:30px 25px;
+    border-radius:15px;
+    width:90%;
+    max-width:400px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.5);
+
+    /* bordas com as cores da barbearia */
+    border-top:5px solid #001f7f;   /* azul */
+    border-right:5px solid #ff0000; /* vermelho */
+    border-bottom:5px solid #ffffff;/* branco */
+    border-left:5px solid #001f7f;  /* azul */
+}
+h2{
+    text-align:center;
+    font-size:26px;
+    margin-bottom:25px;
+    color:#ffffff; /* branco para contraste */
+}
+h3{
+    color:#ffffff;
+    margin-top:25px;
+    margin-bottom:15px;
+}
+input, select{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    margin-bottom:18px;
+    border-radius:8px;
+    border:2px solid #001f7f; /* azul */
+    font-size:15px;
+    background:#111; /* preto dentro do input */
+    color:#fff;
+}
+input::placeholder{
+    color:#bbb;
+}
+button{
+    width:100%;
+    padding:12px;
+    background:#ff0000; /* vermelho */
+    color:white;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+    cursor:pointer;
+    transition:0.3s;
+}
+button:hover{
+    background:#cc0000;
+}
+ul{
+    margin-top:20px;
+    padding-left:0;
+    list-style:none;
+}
+.ocupado{
+    color:#ff0000; /* vermelho */
+    font-weight:bold;
+    margin-bottom:5px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Agendamento - Demonstração</h2>
+
+<label>Nome</label>
+<input id="nome" placeholder="Digite seu nome">
+
+<label>Serviço</label>
+<select id="servico">
+    <option>Corte</option>
+    <option>Barba</option>
+    <option>Corte + Barba</option>
+</select>
+
+<label>Escolha a data</label>
+<input type="date" id="data">
+
+<label>Horário</label>
+<select id="horario">
+    <option>18:00</option>
+    <option>18:30</option>
+    <option>19:00</option>
+    <option>19:30</option>
+    <option>20:00</option>
+    <option>20:30</option>
+    <option>21:00</option>
+</select>
+
+<button onclick="agendar()">Agendar</button>
+
+<h3>Horários Marcados</h3>
+<ul id="lista"></ul>
+
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script>
+  // 🔑 Cole aqui o seu firebaseConfig que você copiou
+  const firebaseConfig = {
+   apiKey: "AIzaSyCar3n-ezQP36Jhy0n6lHZK65rfzmusVd8",
+  authDomain: "agendamentodonando.firebaseapp.com",
+  projectId: "agendamentodonando",
+  storageBucket: "agendamentodonando.firebasestorage.app",
+  messagingSenderId: "72068738051",
+  appId: "1:72068738051:web:d93bd790389e9a5e7a7236",
+  measurementId: "G-LZNZ76DGSB"
+  };
+
+  // Inicializa Firebase
+  firebase.initializeApp(firebaseConfig)
+  const db = firebase.firestore()
+
+  const lista = document.getElementById("lista")
+
+  function agendar() {
+    let nome = document.getElementById("nome").value
+    let servico = document.getElementById("servico").value
+    let data = document.getElementById("data").value
+    let horario = document.getElementById("horario").value
+
+    if(!nome || !servico || !data || !horario){
+        alert("Preencha todos os campos")
+        return
+    }
+
+    // verifica se horário já existe
+    db.collection("agendamentos")
+      .where("data","==",data)
+      .where("horario","==",horario)
+      .get()
+      .then((querySnapshot)=>{
+          if(!querySnapshot.empty){
+              alert("Horário já ocupado nesse dia!")
+              return
+          }
+
+          // adiciona novo agendamento
+          db.collection("agendamentos").add({
+            nome:nome,
+            servico:servico,
+            data:data,
+            horario:horario
+          }).then(()=>{
+              carregarLista()
+              // abre WhatsApp automaticamente
+              let telefoneBarbeiro = "5511999999999"
+              let mensagem = "Novo agendamento:%0A"+
+                              "Cliente: "+nome+"%0A"+
+                              "Serviço: "+servico+"%0A"+
+                              "Data: "+data+"%0A"+
+                              "Horário: "+horario
+              let link = "https://wa.me/"+telefoneBarbeiro+"?text="+mensagem
+              window.open(link)
+
+              // limpa campos
+              document.getElementById("nome").value = ""
+              document.getElementById("servico").value = "Corte"
+          })
+      })
+  }
+
+  function carregarLista(){
+    let data = document.getElementById("data").value
+    if(!data){
+        lista.innerHTML = "<li>Escolha uma data para ver os agendamentos.</li>"
+        return
+    }
+
+    lista.innerHTML = ""
+
+    db.collection("agendamentos")
+      .where("data","==",data)
+      .orderBy("horario")
+      .onSnapshot((querySnapshot)=>{
+        lista.innerHTML = ""
+        if(querySnapshot.empty){
+            lista.innerHTML = "<li>Nenhum horário marcado neste dia.</li>"
+        } else {
+            querySnapshot.forEach((doc)=>{
+                let a = doc.data()
+                let item = document.createElement("li")
+                item.innerText = a.horario + " - " + a.nome + " (" + a.servico + ")"
+                item.classList.add("ocupado")
+                lista.appendChild(item)
+            })
+        }
+      })
+  }
+
+  document.getElementById("data").addEventListener("change", carregarLista)
+</script>
+
+</body>
+</html>
